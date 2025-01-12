@@ -12,8 +12,17 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
-import dj_database_url
-from whitenoise import WhiteNoise
+try:
+    import dj_database_url
+except ImportError as e:
+    print(f"Error importing dj_database_url: {e}")
+
+try:
+    import whitenoise
+except ImportError as e:
+    print(f"Error importing whitenoise: {e}")
+# import dj_database_url
+# from whitenoise import WhiteNoise
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
