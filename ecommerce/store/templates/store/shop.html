@@ -1,0 +1,132 @@
+{% extends "store/main.html" %}
+{% load static %}
+
+{% block content %}
+ <form action="" style="display:none;">
+    {% csrf_token %}
+</form> 
+<div class="container">
+    <div class="grid-layout">
+        {% for product in products %}
+        <div class="layout">
+            <div class="img-container">
+                <img src="{{product.image.url}}" alt="img">
+                <div class="name-price">
+                    <p class="product-name">{{product.name}}</p>
+
+                    <p class="product-price">Price: <span class="price">
+                        ${{product.price}}
+                    </span>
+                    </p>
+                </div>
+                <div class="line"></div>
+                <div class="img-functions">
+                    {% if user.is_authenticated %}
+                    <button class="add-to-cart-btn" data-name="{{product.name}}">Add to cart</button>
+                    <a href="{% url 'cart' %}" class="go-to-cart">
+                    <button>
+
+                            View Cart
+                        </button>
+                    </a>
+                    {% else %}
+                    <button class="add-to-cart-btn disabled" id="add-to-cart-button">Add to cart</button>
+                    <button id="view-cart-btn" class="disabled">
+
+                            View Cart
+                        </button>
+                    
+                    {% endif %}
+                </div>
+    
+            </div>
+        </div>  
+        {% endfor %}
+    </div>
+    
+    <div class="added-to-cart-msg"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded',()=>{
+        const cartButtons = document.querySelectorAll('.add-to-cart-btn')
+        cartButtons.forEach(button => {
+            button.addEventListener('click',(event)=>{
+                const productName = event.target.getAttribute('data-name')
+                addToCart(productName)
+            })
+        })
+    })
+
+    function addToCart(productName){
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value
+        const encodedProductName = encodeURIComponent(productName)
+        url = '/add-to-cart/'
+        fetch(url,{
+            method:'POST',
+            headers:{
+                'Content-Type':'application/json',
+                'X-CSRFToken':csrftoken,
+            },
+            body:JSON.stringify({
+                name:encodedProductName,
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.message){
+                document.getElementById('cart-count').innerText = data.cart_items_count
+            }
+            else{
+                console.error('Error:', data.error)
+                alert('Error:' + data.error)
+            }
+        })
+        .catch(error=>{
+            console.error('fetch error:', error)
+        })
+    }
+
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Add event listener to the "Add to Cart" button (if disabled)
+        const addToCartBtn = document.querySelectorAll("#add-to-cart-button");
+        if (addToCartBtn) {
+            addToCartBtn.forEach((button)=>{
+                button.addEventListener('click',(event)=>{
+                    event.preventDefault();
+                    showLoginPopup();
+                })
+            })
+        }
+    
+        // Add event listener to the "View Cart" button (if user is not logged in)
+        const viewCartBtn = document.querySelectorAll("#view-cart-btn");
+        if (viewCartBtn) {
+            viewCartBtn.forEach((button)=>{
+                button.addEventListener('click',(event)=>{
+                    event.preventDefault();
+                    showLoginPopup();
+                })
+            })
+            
+        }
+    });
+    
+    function showLoginPopup() {
+        Swal.fire({
+            title: "Login Required",
+            text: "Please login or sign up to proceed.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Login",
+            cancelButtonText: "Cancel"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "/login/"; // Redirect to login page
+            }
+        });
+    }
+</script>
+
+{% endblock %}

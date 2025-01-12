@@ -1,0 +1,140 @@
+{% extends "store/main.html" %} {% load static %} {% block content %}
+<form action="" style="display: none">{% csrf_token %}</form>
+<div class="cart-container">
+  <a href="{% url 'home' %}" class="back-link">← Continue Shopping</a>
+
+  {% if items %} {% for item in items %}
+  <div class="cart-item">
+    <img
+      src="{{item.product.image.url}}"
+      alt="{{item.product.name}}"
+      class="item-image"
+    />
+    <div class="item-details">
+      <h3 class="item-name">{{item.product.name}}</h3>
+      <p class="item-price">${{item.product.price}}</p>
+      <div class="quantity-controls">
+        <button
+          class="quantity-btn update-cart"
+          data-name="{{item.product.name}}"
+          data-action="Decrease"
+        >
+          -
+        </button>
+        <span class="quantity" id="quantity-{{item.product.name}}"
+          >{{item.quantity}}</span
+        >
+        <button
+          class="quantity-btn update-cart"
+          data-name="{{item.product.name}}"
+          data-action="Increase"
+        >
+          +
+        </button>
+      </div>
+    </div>
+    <div class="item-total" data-name="{{item.product.name}}">${{item.get_total}}</div>
+  </div>
+  {% endfor %}
+
+  <div class="cart-summary">
+      <div class="quantity-total">Total Items: {{cart_items_count}}</div>
+    <div class="cart-total">
+      <span>Total:</span>
+      <span class="total_cart_price">${{cart_total}}</span>
+    </div>
+  </div>
+
+  <a href="{% url 'checkout' %}">
+    <button class="btn btn-primary">Checkout</button>
+  </a>
+  {% else %}
+  <p>Your cart is empty.</p>
+  {% endif %}
+</div>
+<script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", () => {
+    const buttonElement = document.querySelectorAll(".update-cart");
+    buttonElement.forEach((button) => {
+      button.addEventListener("click", () => {
+        const productName = button.getAttribute("data-name");
+        const action = button.getAttribute("data-action");
+        updateCart(productName, action);
+      });
+    });
+  });
+
+  function updateCart(productName, action) {
+    const csrftoken = document.querySelector(
+      "[name=csrfmiddlewaretoken]"
+    ).value;
+    const encodedProductName = encodeURIComponent(productName);
+    const url = "/update-cart/";
+
+
+    fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrftoken,
+      },
+      body: JSON.stringify({
+        name: encodedProductName,
+        action: action,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+            const quantityTotal = document.querySelector(".quantity-total");
+            const cartTotalAmount = document.querySelector(".total_cart_price");
+            const cartCount = document.getElementById('cart-count');
+          if (data.item_deleted) {
+            // Remove the entire cart item element if it was deleted
+            const cartItem = document
+              .querySelector(`[data-name="${productName}"]`)
+              .closest(".cart-item");
+            cartItem.remove();
+
+            // Update the cart total items count
+            
+            if (quantityTotal) {
+              quantityTotal.textContent = `Total Items: ${data.cart_items_count}`;
+            }
+            if (cartTotalAmount) {
+              cartTotalAmount.textContent = `$${data.cart_total}`;  // Add this line
+          }
+          if(cartCount){
+            cartCount.textContent = data.cart_items_count;
+          }
+
+            // If cart is empty, show empty cart message
+            if (data.cart_items_count === 0) {
+              const cartContainer = document.querySelector(".cart-container");
+              cartContainer.innerHTML = `
+              <a href="{% url 'home' %}" class="back-link">← Continue Shopping</a>
+
+              <p>Your cart is empty.</p>
+              `;
+            }
+          } else {
+            // Just update the quantity if item wasn't deleted
+            document.getElementById("quantity-" + productName).innerText =
+              data.new_item_quantity;
+            document.getElementById("cart-count").innerText =
+              data.cart_items_count;
+            document.querySelector(
+              `.item-total[data-name="${productName}"]`
+            ).innerText = `$${data.item_total}`;
+
+            quantityTotal.textContent = `Total Items: ${data.cart_items_count}`;
+            cartTotalAmount.textContent = `Total: $${data.cart_total}`
+        }
+        }
+      })
+      .catch((error) => {
+        console.error("error:", error);
+      });
+  }
+</script>
+{% endblock content %}

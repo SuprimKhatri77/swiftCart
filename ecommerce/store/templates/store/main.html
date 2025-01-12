@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>swiftCart</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="left">
+                <h1><a href="/"><span class="L-wift">swift</span><span class="L-cart">Cart<span></a></h1>
+            </div>
+            <div class="right">
+                <ul>
+                    {% if user.is_authenticated %} 
+                    <li><a href="/">Shop</a></li>
+                    <li>
+                        <a href="{% url 'cart' %}"><img src="{% static 'images/cart.png' %}" alt="cart" height='40px' width='40px'></a>
+                        <p class="cart-quantity" id="cart-count">{{cart_items_count}}</p>
+                    </li>
+                    {% endif %}
+                    {% if user.is_authenticated %}
+                    <li><a href="{% url 'logout' %}"><button class="login-btn">Logout</button></a></li>
+                    {% else %}
+                    <li><a href="{% url 'login' %}"><button class="login-btn">Login</button></a></li>
+                    <li><a href="{% url 'register' %}"><button class="login-btn">Sign up</button></a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}
+
+
+        {% endblock %}
+
+    </main>
+
+    <footer>
+
+    </footer>
+</body>
+</html>
