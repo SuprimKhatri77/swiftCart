@@ -28,16 +28,20 @@ class Order(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True,blank=True)
     date_ordered = models.DateTimeField(auto_now_add=True)
     complete = models.BooleanField(default=False, null=True, blank=True)
-    transaction_id = models.CharField(max_length=100, unique=True, editable=False, blank=True)
+    transaction_id = models.CharField(max_length=100, unique=True, editable=False, blank=False)
+
 
     def __str__(self):
         return f"Order {self.transaction_id or 'No Transaction ID'}"
-
     def save(self, *args, **kwargs):
-        if not self.transaction_id:  # Only generate if it doesn't already exist
-            self.transaction_id = str(uuid.uuid4())  # Generate a unique ID
+        if not self.transaction_id:
+            while True:
+                new_id = str(uuid.uuid4())
+                if not Order.objects.filter(transaction_id=new_id).exists():
+                    self.transaction_id = new_id
+                    break
         super().save(*args, **kwargs)
-    
+
     @property
     def get_cart_total(self):
         OrderItems = self.orderitem_set.all()
@@ -65,31 +69,27 @@ class OrderItem(models.Model):
     def get_total(self):
         return self.quantity * self.product.price
     
+class ShippingInformation(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE,null=True,blank=True)
+    address = models.CharField(max_length=200)
+    city = models.CharField(max_length=200)
+    state = models.CharField(max_length=200)
+    zipcode = models.CharField(max_length=200)
 
-    # user authentication
-
-# Registration Form
-class RegistrationForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput)
-    confirm_password = forms.CharField(widget=forms.PasswordInput)
-
-    class Meta:
-        model = User
-        fields = ['username', 'email', 'password']
+    def __str__(self):
+        return f"{self.customer.name} - {self.address}" if self.customer.name and self.address else (self.customer.user.username if self.customer.user else "Unnamed Customer")
 
     
+class Transaction(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True)
+    order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True)
+    shipping_info = models.ForeignKey(ShippingInformation, on_delete=models.SET_NULL, null=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    date_ordered = models.DateTimeField(auto_now_add=True)
 
-    def clean(self):
-        cleaned_data = super().clean()
-        password = cleaned_data.get('password')
-        confirm_password = cleaned_data.get('confirm_password')
-        if password != confirm_password:
-            raise forms.ValidationError("Passwords do not match.")
-        return cleaned_data
-    
+    def __str__(self):
+        return  f"{self.customer.name} - ${self.amount}" if self.customer.name and self.amount else (self.customer.user.username if self.customer.user else "Unnamed Customer")
 
-# Login Form
-class LoginForm(AuthenticationForm):
-    username = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Username'}))
-    password = forms.CharField(widget=forms.PasswordInput(attrs={'placeholder': 'Password'}))
+
+
 

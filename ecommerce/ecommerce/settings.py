@@ -12,17 +12,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
-try:
-    import dj_database_url
-except ImportError as e:
-    print(f"Error importing dj_database_url: {e}")
-
-try:
-    import whitenoise
-except ImportError as e:
-    print(f"Error importing whitenoise: {e}")
-# import dj_database_url
-# from whitenoise import WhiteNoise
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -36,9 +25,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-hmo7*5+06zzx5xebp0k#(r7&r8)2x8)uu*@wx^!@rjo2-*t%jz'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['your-app-name.herokuapp.com', 'localhost']
+ALLOWED_HOSTS = []
 
 # Application definition
 
@@ -60,17 +49,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
-DATABASE_URL = os.getenv('DATABASE_URL')
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600
-        )
-    }
 
 ROOT_URLCONF = 'ecommerce.urls'
 
@@ -140,11 +120,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-# STATIC_URL = 'static/'
+STATIC_URL = 'static/'
 MEDIA_URL = 'images/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATIC_URL = '/static/'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR / 'static')
@@ -152,6 +130,9 @@ STATICFILES_DIRS = [
 MEDIA_ROOT = os.path.join(BASE_DIR / 'static/images')
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/store/login/'
+
+
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from .models import *
+from .forms import *
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 import json
@@ -151,8 +152,81 @@ def checkout(request):
         'cart_total': cart_total,
         'cart_items_count': cart_items_count
     }
+
     return render(request, 'store/checkout.html', context)
 
+def place_order(request):
+    if request.method == 'POST':
+        try:
+            # Parse JSON data
+            data = json.loads(request.body)
+            address = data.get('address')
+            state = data.get('state')
+            city = data.get('city')
+            zipcode = data.get('zipcode')
+
+            # Validate fields
+            if not all([address, state, city, zipcode]):
+                return JsonResponse({'message': 'All fields are required!'}, status=400)
+
+            # Get customer and their active order
+            try:
+                customer = Customer.objects.get(user=request.user)
+                order = Order.objects.get(customer=customer, complete=False)
+            except Customer.DoesNotExist:
+                return JsonResponse({'message': 'Customer not found!'}, status=400)
+            except Order.DoesNotExist:
+                return JsonResponse({'message': 'No active order found!'}, status=400)
+
+            # Create shipping information
+            shipping = ShippingInformation.objects.create(
+                customer=customer,
+                address=address,
+                state=state,
+                city=city,
+                zipcode=zipcode
+            )
+
+            # Mark the order as complete
+            order.complete = True
+            order.save()
+
+            # Create a new transaction
+            Transaction.objects.create(
+                customer=customer,
+                order=order,
+                shipping_info=shipping,
+                amount=order.get_cart_total
+            )
+
+            return JsonResponse({
+                'message': 'Order placed successfully!',
+                'redirect': '/order-success/'  # Optional: redirect to success page
+            })
+
+        except json.JSONDecodeError:
+            return JsonResponse({'message': 'Invalid JSON data!'}, status=400)
+        except Exception as e:
+            print(f"Error processing order: {str(e)}")
+            return JsonResponse({'message': f'Error: {str(e)}'}, status=500)
+            
+    return JsonResponse({'message': 'Invalid request method!'}, status=405)
+
+def order_success(request):
+    context = {}
+    if request.user.is_authenticated:
+        customer = Customer.objects.get(user=request.user)
+        # Get the most recent completed order
+        order = Order.objects.filter(customer=customer, complete=True).order_by('-date_ordered').first()
+        if order:
+            context = {
+                'order': order,
+                'order_items': order.orderitem_set.all(),
+                'shipping': ShippingInformation.objects.filter(customer=customer).last(),
+                'total': order.get_cart_total,
+                'customerName': customer.user.username,
+            }
+    return render(request, 'store/order_success.html', context)
 
 
 def update_cart(request):
